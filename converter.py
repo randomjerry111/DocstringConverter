@@ -16,7 +16,7 @@ class converter():
         except Exception as e:
             raise e
         self.new_code = """"""
-
+        
     def execute(self):
         is_docstring = False
         doc_begin = False
@@ -37,8 +37,9 @@ class converter():
                     self.doc__init__(docstring)
                     self.parser()
                     self.formatter()
-                    self.new_code += self.output_docstring + '\n'
-                    self.new_code += indent * '    ' + sep
+                    for i in self.output_docstring.split('\n'):
+                        self.new_code += (indent-1) * '\t' + i + '\n'
+                    self.new_code += indent * '    ' + sep + '\n'
                     docstring = """"""
                     is_docstring = False
                 else:
@@ -47,24 +48,33 @@ class converter():
                     self.new_code += indent * '    ' + sep
                     if _line.split(sep)[1].strip() or None:
                         docstring += _line.split(sep)[1]
+                    
                     is_docstring = True
             else:
                 docstring += _line
                 
 
-    def diff(self):
+    def diff(self, output_patch = 'a.patch'):
         temp = self.new_code.split('\n')
         for i in range(len(temp)):
             if i!=len(temp)-1:
                 temp[i] += '\n'
-        diff_list = difflib.unified_diff(self.input_lines,temp,'Original','Current')
+        diff_list = difflib.unified_diff(self.input_lines,temp,'a\\'+self.input_file,'b\\'+self.input_file)
         diff = [d for d in diff_list]
-        with open('a.patch','w') as f:
+        with open(output_patch,'w') as f:
             f.writelines(diff)
         
 
     def doc__init__(self, docstring :str):
+        count = 0
+        for m in docstring.split('\n'):
+            if m.strip() == '':
+                count += 1
+            else:
+                break
         self.docstring = inspect.cleandoc(docstring)
+        self.docstring = count * '\n' + self.docstring
+        
         
     def detect_type(self):
         if(not self.input_type):
@@ -86,23 +96,21 @@ class converter():
         self.ast['type'] = {}
         self.ast['rtype'] = ''
         self.ast['return'] = ''
-        # self.ast['rtype'] = {}
-        # self.ast['return'] = {}
         for part in self.text[1:]:
             if(self.input_type == 'reST'):
                 for line in part.split('\n'):
+                    if(line.strip() == ''):
+                        continue
                     if('param' in line):
                         param = line.split(':')[1].split()[1]
                         param_desc = line.split(':')[2].strip()
                         self.ast['param'][param] = param_desc
                         former_attr = 'param'
                     elif('return' in line):
-                        # return_ =  line.split(':')[1].split()[1]
                         return_desc = line.split(':')[2].strip()
                         self.ast['return'] = return_desc
                         former_attr = 'return'
                     elif('rtype' in line):
-                        # return_ =  line.split(':')[1].split()[1]
                         rtype_desc = line.split(':')[2].strip()
                         self.ast['rtype'] = rtype_desc
                         former_attr = 'rtype'
@@ -117,16 +125,19 @@ class converter():
                         self.ast['type'][type_] = type_desc
                         former_attr = 'type'
                     else:
-                        if(former_attr=='param'):
-                            self.ast['param'][param] += ' ' + line.strip()
-                        elif(former_attr=='return'):
-                            self.ast['return'] += ' ' + line.strip()
-                        elif(former_attr=='rtype'):
-                            self.ast['rtype'] += ' ' + line.strip()
-                        elif(former_attr=='raise'):
-                            self.ast['raise'][raise_] += ' ' + line.strip()
-                        elif(former_attr=='type'):
-                            self.ast['type'][type_] += ' ' + line.strip()
+                        try:
+                            if(former_attr=='param'):
+                                self.ast['param'][param] += ' ' + line.strip()
+                            elif(former_attr=='return'):
+                                self.ast['return'] += ' ' + line.strip()
+                            elif(former_attr=='rtype'):
+                                self.ast['rtype'] += ' ' + line.strip()
+                            elif(former_attr=='raise'):
+                                self.ast['raise'][raise_] += ' ' + line.strip()
+                            elif(former_attr=='type'):
+                                self.ast['type'][type_] += ' ' + line.strip()
+                        except:
+                            pass
 
             elif(self.input_type == 'Google'):
                 line = part.split('\n')
@@ -276,10 +287,11 @@ class converter():
 
 
 
-
-# c = converter(r'D:\Code\Python\DocstringConverter\test.py')
-# c.execute()
-# c.diff()
+# Example
+c = converter(r'D:\Code\Python\DocstringConverter\test.py',output_type='Google')
+c.execute()
+c.diff()
+# print(c.ast)
 
 
 
