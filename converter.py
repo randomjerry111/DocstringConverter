@@ -323,7 +323,3 @@ class converter():
             
 
 
-
-# c = converter(r'D:\Code\Python\DocstringConverter\test.py',output_type='Google')
-# c.execute()
-# c.diff(output_patch='a.patch')
